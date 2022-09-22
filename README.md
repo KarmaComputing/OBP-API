@@ -21,6 +21,32 @@ The project roadmap is available [here.](https://github.com/OpenBankProject/OBP-
 The API documentation is best viewed using the OBP API Explorer or a third party tool that has imported the OBP Swagger definitions.
 Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) for links. 
 
+### Docker Quickstart
+
+> **Note**
+> The Open Bank Project has multiple containers, read the documentation to get a more complete understanding.
+
+Configure:
+```
+cp .env.example .env
+```
+
+Build & run using docker
+```
+docker build -t obp-api .
+docker run --env-file .env
+```
+
+> **Warning**
+> Don't forget to increase the `memory` setting under "Resources" if you're
+> using Docker Desktop or similar to avoid `GC overhead limit exceeded`
+
+Build & run using podman
+```
+podman build -t obp-api .
+podman run --env-file .env
+```
+
 ## STATUS of API Versions
 
 OBP instances support multiple versions of the API simultaniously (unless they are deactivated in config)
