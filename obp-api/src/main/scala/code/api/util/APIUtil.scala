@@ -108,6 +108,8 @@ import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 
+import code.users.Users
+
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
@@ -118,6 +120,8 @@ import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
 
+  val DateWithYear = "yyyy"
+  val DateWithMonth = "yyyy-MM"
   val DateWithDay = "yyyy-MM-dd"
   val DateWithDay2 = "yyyyMMdd"
   val DateWithDay3 = "dd/MM/yyyy"
@@ -126,11 +130,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ" //?? what does this `Rollback` mean ??
 
+  val DateWithYearFormat = new SimpleDateFormat(DateWithYear)
+  val DateWithMonthFormat = new SimpleDateFormat(DateWithMonth)
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
 
+  val DateWithYearExampleString: String = "1100"
+  val DateWithMonthExampleString: String = "1100-01"
   val DateWithDayExampleString: String = "1100-01-01"
   val DateWithSecondsExampleString: String = "1100-01-01T01:01:01Z"
   val DateWithMsExampleString: String = "1100-01-01T01:01:01.000Z"
@@ -578,8 +586,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst: JValue = ApiSession.processJson((Extraction.decompose(cc)), callContext)
+    val excludeOptionalFieldsParam = getHttpRequestUrlParam(callContext.map(_.url).getOrElse(""),"exclude-optional-fields")
+    val excludedResponseBehaviour = APIUtil.getPropsAsBoolValue("excluded.response.behaviour", false)
+    //excludeOptionalFieldsParamValue has top priority, then the excludedResponseBehaviour props.
     val jsonValue = excludedFieldValues match {
-      case Full(JArray(arr:List[JValue])) =>
+      case Full(JArray(arr:List[JValue])) if (excludeOptionalFieldsParam.equalsIgnoreCase("true") || (excludeOptionalFieldsParam.equalsIgnoreCase("") && excludedResponseBehaviour))=>
         JsonUtils.deleteFieldRec(jsonAst)(v => arr.contains(v.value))
       case _ => jsonAst
     }
@@ -3657,6 +3668,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  /**
+   * This function finds accounts of a Customer
+   * @param customerId The CUSTOMER_ID
+   * @return The list of Accounts
+   */
+  def getAccountsByCustomer(customerId: CustomerId): List[BankIdAccountId] = {
+    for {
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByCustomerId(customerId.value)
+      user <- Users.users.vend.getUserByUserId(userCustomerLink.userId).toList
+      availablePrivateAccounts <- Views.views.vend.getPrivateBankAccounts(user)
+    } yield {
+      availablePrivateAccounts
+    }
+  }
   /**
    * This function finds a phone number of an Customer in accordance to next rule:
    * - account -> holders -> User -> User Customer Links -> Customer.phone_number
