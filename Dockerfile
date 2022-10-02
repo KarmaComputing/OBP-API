@@ -29,4 +29,4 @@ USER obp
 
 ADD entrypoint.sh /
 # Start jetty
-CMD ["/bin/bash", "/entrypoint.sh"]
+CMD ["/bin/sh", "/entrypoint.sh"]

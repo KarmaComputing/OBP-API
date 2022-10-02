@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/sh
+
+set -x
 
 # Dynamically set uid/gid (Openshift needs this)
 # See: 
@@ -9,10 +11,11 @@
 # openshift-like simply means if the uid is > 10000 at container
 # runtime (this is the (arbitary?) number chosen by openshift)
 # "Simplicty is a prerequisite to reliability" is sadly not present here
+UID=$(id -u)
 if [[ $UID -ge 10000 ]]; then
     GID=$(id -g)
     sed -e "s/^jetty:x:[^:]*:[^:]*:/jetty:x:$UID:$GID:/" /etc/passwd > /tmp/passwd
-    cat /tmp/passws > /etc/passwd
+    cat /tmp/passwd > /etc/passwd
     rm /tmp/passwd
 fi
 
